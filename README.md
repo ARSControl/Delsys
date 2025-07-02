@@ -19,8 +19,8 @@ CONTENT:
     - id: string
     - time stamp: float
     - data value: float
- --> each datatype will then belong to a certain sensor, which will be part of the main dictionary that will contain the key-value pairs of the used sensors
- --> the final structure should look something like:
+- --> each datatype will then belong to a certain sensor, which will be part of the main dictionary that will contain the key-value pairs of the used sensors
+- --> the final structure should look something like:
  ```json
    {
        "sensor1": {
