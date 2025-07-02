@@ -19,27 +19,28 @@ CONTENT:
     - id: string
     - time stamp: float
     - data value: float
-- --> each datatype will then belong to a certain sensor, which will be part of the main dictionary that will contain the key-value pairs of the used sensors
-- --> the final structure should look something like:
-    - {
-        'sensor1': {
-            'datatype1': {
-                'header': string, 
-                'id': string,
-                'time_stamp': float,
-                'data_value': float
-            },
-            'datatype2': {
-                ...
-            },
-            ...
-        },
-        'sensor2': {
-            ...
-        },
-        ...
-
-    }
+ --> each datatype will then belong to a certain sensor, which will be part of the main dictionary that will contain the key-value pairs of the used sensors
+ --> the final structure should look something like:
+ ```json
+   {
+       "sensor1": {
+           "datatype1": {
+               "header": "string",
+               "id": "string",
+               "time_stamp": "float",
+               "data_value": "float"
+           },
+           "datatype2": {
+               "...": "..."
+           },
+           "...": "..."
+       },
+       "sensor2": {
+           "...": "..."
+       },
+       "...": "..."
+   }
+   ```
 - remove shutdown timer
 - add routine to shutdown socket if connection is interrupted and/or closed by Linux side
 
