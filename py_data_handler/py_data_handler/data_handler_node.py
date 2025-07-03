@@ -71,17 +71,48 @@ class DataHandlerNode(Node):
             self.emg_data_flag = True
         
         if self.emg_flag:
-            data = msg.data
+            data_values = msg.data.split(',')   # incoming data treated as a string with comma-separated values --> CHANGE ACCORDINGLY FOR FLOAT DATA (ALSO SUBSCRIBER TYPE)
             file_path = os.path.join(self.emg_dir, 'emg_data.csv')
             
-            file_exists = os.path.isfile(file_path)
-
             try:
                 with open(file_path, 'a', newline='') as f:
                     writer = csv.writer(f)
-                    if not file_exists:
-                        writer.writerow(['emg'])
-                    writer.writerow([data])
+                    for val in data_values:
+                        writer.writerow([val])
+            except IOError as e:
+                self.get_logger().error(f'Could not write to file {file_path}: {e}')
+
+    def subs_acc_callback(self, msg):
+        if not self.acc_data_flag and self.acc_flag:
+            print("ACC data is going to be saved.")
+            self.acc_data_flag = True
+        
+        if self.acc_flag:
+            data_values = msg.data.split(',')   # incoming data treated as a string with comma-separated values --> CHANGE ACCORDINGLY FOR FLOAT DATA (ALSO SUBSCRIBER TYPE)
+            file_path = os.path.join(self.acc_dir, 'acc_data.csv')
+            
+            try:
+                with open(file_path, 'a', newline='') as f:
+                    writer = csv.writer(f)
+                    for val in data_values:
+                        writer.writerow([val])
+            except IOError as e:
+                self.get_logger().error(f'Could not write to file {file_path}: {e}')
+
+    def subs_gyro_callback(self, msg):
+        if not self.gyro_data_flag and self.gyro_flag:
+            print("GYRO data is going to be saved.")
+            self.gyro_data_flag = True
+        
+        if self.gyro_flag:
+            data_values = msg.data.split(',')   # incoming data treated as a string with comma-separated values --> CHANGE ACCORDINGLY FOR FLOAT DATA (ALSO SUBSCRIBER TYPE)
+            file_path = os.path.join(self.gyro_dir, 'gyro_data.csv')
+            
+            try:
+                with open(file_path, 'a', newline='') as f:
+                    writer = csv.writer(f)
+                    for val in data_values:
+                        writer.writerow([val])
             except IOError as e:
                 self.get_logger().error(f'Could not write to file {file_path}: {e}')
 
