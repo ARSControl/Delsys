@@ -71,14 +71,13 @@ class DataHandlerNode(Node):
             self.emg_data_flag = True
         
         if self.emg_flag:
-            data_values = msg.data.split(',')   # incoming data treated as a string with comma-separated values --> CHANGE ACCORDINGLY FOR FLOAT DATA (ALSO SUBSCRIBER TYPE)
+            timestamp, value = self.unpack_data_for_csv(msg.data)  
             file_path = os.path.join(self.emg_dir, 'emg_data.csv')
             
             try:
                 with open(file_path, 'a', newline='') as f:
                     writer = csv.writer(f)
-                    for val in data_values:
-                        writer.writerow([val])
+                    writer.writerow([timestamp, value])  
             except IOError as e:
                 self.get_logger().error(f'Could not write to file {file_path}: {e}')
 
@@ -88,14 +87,13 @@ class DataHandlerNode(Node):
             self.acc_data_flag = True
         
         if self.acc_flag:
-            data_values = msg.data.split(',')   # incoming data treated as a string with comma-separated values --> CHANGE ACCORDINGLY FOR FLOAT DATA (ALSO SUBSCRIBER TYPE)
+            timestamp, value = self.unpack_data_for_csv(msg.data)  
             file_path = os.path.join(self.acc_dir, 'acc_data.csv')
             
             try:
                 with open(file_path, 'a', newline='') as f:
                     writer = csv.writer(f)
-                    for val in data_values:
-                        writer.writerow([val])
+                    writer.writerow([timestamp, value])  
             except IOError as e:
                 self.get_logger().error(f'Could not write to file {file_path}: {e}')
 
@@ -105,14 +103,13 @@ class DataHandlerNode(Node):
             self.gyro_data_flag = True
         
         if self.gyro_flag:
-            data_values = msg.data.split(',')   # incoming data treated as a string with comma-separated values --> CHANGE ACCORDINGLY FOR FLOAT DATA (ALSO SUBSCRIBER TYPE)
+            timestamp, value = self.unpack_data_for_csv(msg.data)  
             file_path = os.path.join(self.gyro_dir, 'gyro_data.csv')
             
             try:
                 with open(file_path, 'a', newline='') as f:
                     writer = csv.writer(f)
-                    for val in data_values:
-                        writer.writerow([val])
+                    writer.writerow([timestamp, value])  
             except IOError as e:
                 self.get_logger().error(f'Could not write to file {file_path}: {e}')
 
@@ -138,9 +135,25 @@ class DataHandlerNode(Node):
                         try:
                             with open(file_path, 'w', newline='') as f:
                                 writer = csv.writer(f)
-                                writer.writerow(item['header'])
+                                writer.writerow(['time_stamp'] + item['header'])
                             self.get_logger().info(f"Created file with header: {file_path}")
                         except IOError as e:
                             self.get_logger().error(f"Could not create file {file_path}: {e}")
 
+    def unpack_data_for_csv(self, data):
+        # we're supposing data is a dict with keys: header, id, time_stamp, data_value
+        if isinstance(data, dict):
+            time_stamp = data.get('time_stamp', '')
+            data_value = data.get('data_value', '')
+
+            return time_stamp, data_value
+        else:
+            raise TypeError("Data must be a dictionary.")
+        return
+
+def main():
+    return
+
+if __name__ == '__main__':
+    main()
 
