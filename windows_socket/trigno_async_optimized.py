@@ -9,6 +9,9 @@ import keyboard  # For keyboard input detection
 from AeroPy.TrignoBase import TrignoBase
 from AeroPy.DataManager import DataKernel
 
+import socket
+import json
+
 # -----------------------------------
 # Class to handle socket communication
 # -----------------------------------
@@ -26,16 +29,16 @@ class SensorSocket:
     async def send(self, message):
         try:
             # Send encoded message through socket
-            self.writer.write(message.encode())
+            self.writer.write(json.dumps(message).encode('utf-8'))
             await self.writer.drain()
         except Exception as e:
             print(f"Socket send error on port {self.port}: {e}")
 
     # FUNCTION NOT CURRENTLY USED --> KEEP IT TO ALLOW USER TO STOP THE SOCKET ON WINDOWS SIDE OR LEAVE CONTROL TO UBUNTU??
-    def close(self):
-        # Close the socket connection
-        if self.writer:
-            self.writer.close()
+    #def close(self):
+    #    # Close the socket connection
+    #    if self.writer:
+    #        self.writer.close()
 
 # -----------------------------------
 # Main class for managing Trigno sensors
@@ -102,7 +105,7 @@ class TrignoRecorder:
             guid, data = await queue.get() # Get next data item from queue
             for sample in data:
                 # Format data sample as CSV line
-                message = f"{dtype},{guid},{sample.Item1},{sample.Item2}\n"
+                message = {"datatype": dtype, "guid": guid, "time_stamp": sample.Item1,"data_value": sample.Item2}
                 await sock.send(message) # Send to socket
 
                 # Also store in memory for later CSV export
