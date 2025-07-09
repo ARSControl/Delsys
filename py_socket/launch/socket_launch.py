@@ -19,7 +19,6 @@ def generate_launch_description():
         Node(
             package='py_socket',
             executable='reader',
-            name='py_socket',
             output='screen',
             emulate_tty=True,
             parameters=[

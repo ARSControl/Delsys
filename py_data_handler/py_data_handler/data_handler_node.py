@@ -1,9 +1,9 @@
 import rclpy
 from rclpy.node import Node
-from std_msgs.msg import String
 import os
 import csv
-import keyboard
+
+from delsys_interfaces.msg import DelsysSensorData, DelsysSensorInfo
 
 class DataHandlerNode(Node):
     def __init__(self):
@@ -30,12 +30,21 @@ class DataHandlerNode(Node):
         self.emg_dir = self.get_parameter('emg_dir').get_parameter_value().string_value
         self.acc_dir = self.get_parameter('acc_dir').get_parameter_value().string_value
         self.gyro_dir = self.get_parameter('gyro_dir').get_parameter_value().string_value
+
+        # Check if any flags are set to True
+        if not any([self.info_flag, self.emg_flag, self.acc_flag, self.gyro_flag]):
+            self.get_logger().warn('No data flags are set to True. No data will be saved.')
+        else:
+            self.get_logger().info('Data flags are set. Data will be saved.')
+        
+        # Setup dirs to publish data to
+        self.dirs_setup()
         
         # Subscribers
-        self.subs_info = self.create_subscription(String, 'info_data', self.subs_info_callback, 10)
-        self.subs_emg = self.create_subscription(String, 'emg_data', self.subs_emg_callback, 10)
-        self.subs_acc = self.create_subscription(String, 'acc_data', self.subs_acc_callback, 10)
-        self.subs_gyro = self.create_subscription(String, 'gyro_data', self.subs_gyro_callback, 10)
+        self.subs_info = self.create_subscription(DelsysSensorInfo, 'info_data', self.subs_info_callback, 10)
+        self.subs_emg = self.create_subscription(DelsysSensorData, 'emg_data', self.subs_emg_callback, 10)
+        self.subs_acc = self.create_subscription(DelsysSensorData, 'acc_data', self.subs_acc_callback, 10)
+        self.subs_gyro = self.create_subscription(DelsysSensorData, 'gyro_data', self.subs_gyro_callback, 10)
 
         self.subs_info  # prevent unused variable warning
         self.subs_emg  
@@ -55,12 +64,19 @@ class DataHandlerNode(Node):
             self.info_data_flag = True
 
         if self.info_flag:
-            data = msg.data
+            # data = DelsysSensorInfo()
+            # data.sensor = msg.sensor
+            # data.channel = msg.channel
+            # data.guid = msg.guid
+            # data.type = msg.type
             info_dir = self.get_parameter('info_dir').get_parameter_value().string_value
             file_path = os.path.join(info_dir, 'info_data.txt')
             try:
                 with open(file_path, 'w') as f:
-                    f.write(data)
+                    f.write(f"Sensor: {msg.sensor}\n")
+                    f.write(f"Channel: {msg.channel}\n")
+                    f.write(f"GUID: {msg.guid}\n")
+                    f.write(f"Type: {msg.type}\n")
                 self.get_logger().info(f'Saved info to {file_path}')
             except IOError as e:
                 self.get_logger().error(f'Could not write to file {file_path}: {e}')
@@ -71,7 +87,7 @@ class DataHandlerNode(Node):
             self.emg_data_flag = True
         
         if self.emg_flag:
-            timestamp, value = self.unpack_data_for_csv(msg.data)  
+            timestamp, value = self.unpack_data_for_csv(msg)  
             file_path = os.path.join(self.emg_dir, 'emg_data.csv')
             
             try:
@@ -87,7 +103,7 @@ class DataHandlerNode(Node):
             self.acc_data_flag = True
         
         if self.acc_flag:
-            timestamp, value = self.unpack_data_for_csv(msg.data)  
+            timestamp, value = self.unpack_data_for_csv(msg)  
             file_path = os.path.join(self.acc_dir, 'acc_data.csv')
             
             try:
@@ -103,7 +119,7 @@ class DataHandlerNode(Node):
             self.gyro_data_flag = True
         
         if self.gyro_flag:
-            timestamp, value = self.unpack_data_for_csv(msg.data)  
+            timestamp, value = self.unpack_data_for_csv(msg)  
             file_path = os.path.join(self.gyro_dir, 'gyro_data.csv')
             
             try:
@@ -127,7 +143,7 @@ class DataHandlerNode(Node):
                 dir_path = item['dir']
                 if not os.path.exists(dir_path):
                     os.makedirs(dir_path)
-                    self.get_logger().info(f'Created directory: {dir_path}')
+                    self.get_logger().info(f'Created directory: {os.path.abspath(dir_path)}')
 
                 if 'header' in item:
                     file_path = os.path.join(dir_path, f"{item['name']}_data.csv")
@@ -140,19 +156,18 @@ class DataHandlerNode(Node):
                         except IOError as e:
                             self.get_logger().error(f"Could not create file {file_path}: {e}")
 
-    def unpack_data_for_csv(self, data):
-        # we're supposing data is a dict with keys: header, id, time_stamp, data_value
-        if isinstance(data, dict):
-            time_stamp = data.get('time_stamp', '')
-            data_value = data.get('data_value', '')
-
-            return time_stamp, data_value
-        else:
-            raise TypeError("Data must be a dictionary.")
-        return
+    def unpack_data_for_csv(self, msg):
+        time_stamp = msg.time_stamp
+        data_value = msg.data_value
+        return time_stamp, data_value
 
 def main():
-    return
+    rclpy.init()
+    node = DataHandlerNode()
+    rclpy.spin(node)
+
+    node.destroy_node()
+    rclpy.shutdown()
 
 if __name__ == '__main__':
     main()

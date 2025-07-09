@@ -3,5 +3,6 @@
 */LICENSE
 */setup.cfg
 */*/__init__.py
+*/csv/
 windows_socket/
 
