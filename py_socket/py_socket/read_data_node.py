@@ -36,9 +36,9 @@ class ReadDataNode(Node):
 
         for port, topic in self.port_topic_map.items():
             if topic == 'info_data':
-                self.port_publishers[port] = self.create_publisher(DelsysSensorInfo, topic, 100)
+                self.port_publishers[port] = self.create_publisher(DelsysSensorInfo, topic, 1000)
             else:
-                self.port_publishers[port] = self.create_publisher(DelsysSensorData, topic, 100)
+                self.port_publishers[port] = self.create_publisher(DelsysSensorData, topic, 1000)
  
     async def start(self):
         await self.start_servers()
@@ -54,7 +54,7 @@ class ReadDataNode(Node):
         ros_msg.sensor = msg['Sensor']
         ros_msg.channel = msg['Channel']
         ros_msg.guid = msg['GUID']
-        ros_msg.type = msg['Type']
+        ros_msg.data_type = msg['DataType']
         self.port_publishers[port].publish(ros_msg)
         self.get_logger().info(f"[PORT {port}] Published: {msg}")
 

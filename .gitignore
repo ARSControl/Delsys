@@ -4,5 +4,7 @@
 */setup.cfg
 */*/__init__.py
 */csv/
+*/info_data.txt
 windows_socket/
+.vscode/
 
