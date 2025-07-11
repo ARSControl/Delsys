@@ -17,8 +17,8 @@ setup(
     install_requires=['setuptools'],
     zip_safe=True,
     maintainer='giuliobesi',
-    maintainer_email='giuliobesi@todo.todo',
-    description='TODO: Package description',
+    maintainer_email='giulio.besi@unimore.it',
+    description='(Python) Data handler package',
     license='Apache-2.0',
     tests_require=['pytest'],
     entry_points={

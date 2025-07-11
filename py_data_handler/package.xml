@@ -3,7 +3,7 @@
 <package format="3">
   <name>py_data_handler</name>
   <version>0.0.0</version>
-  <description>Package to handle data read from the socket node</description>
+  <description>(Python) Data handler package</description>
   <maintainer email="giulio.besi@unimore.it">Giulio Besi</maintainer>
   <license>Apache-2.0</license>
 

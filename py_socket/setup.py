@@ -18,7 +18,7 @@ setup(
     zip_safe=True,
     maintainer='giuliobesi',
     maintainer_email='giulio.besi@unimore.it',
-    description='(Python) Socket data receiver and reader',
+    description='(Python) Package for socket data receiver and reader',
     license='Apache-2.0',
     tests_require=['pytest'],
     entry_points={

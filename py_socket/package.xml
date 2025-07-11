@@ -3,7 +3,7 @@
 <package format="3">
   <name>py_socket</name>
   <version>0.0.0</version>
-  <description>(Python) Socket data receiver and reader</description>
+  <description>(Python) Package for socket data receiver and reader</description>
   <maintainer email="giulio.besi@unimore.it">Giulio Besi</maintainer>
   <license>Apache-2.0</license>
 

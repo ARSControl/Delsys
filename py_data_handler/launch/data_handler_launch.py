@@ -1,3 +1,5 @@
+""" PYTHON LAUNCH FILE """
+
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
 from launch.substitutions import LaunchConfiguration
@@ -6,10 +8,6 @@ import os
 
 def generate_launch_description():
     # Declare launch arguments for flags
-    # info_flag_arg = DeclareLaunchArgument(
-    #     'info_flag', default_value='False',
-    #     description='Flag to enable saving of INFO data.'
-    # )
     emg_flag_arg = DeclareLaunchArgument(
         'emg_flag', default_value='False',
         description='Flag to enable saving of EMG data.'
@@ -44,7 +42,6 @@ def generate_launch_description():
     )
 
     # Use LaunchConfiguration to get the values
-    # info_flag = LaunchConfiguration('info_flag')
     emg_flag = LaunchConfiguration('emg_flag')
     acc_flag = LaunchConfiguration('acc_flag')
     gyro_flag = LaunchConfiguration('gyro_flag')
@@ -60,7 +57,6 @@ def generate_launch_description():
         output='screen',
         emulate_tty=True,
         parameters=[
-            # {'info_flag': info_flag},
             {'emg_flag': emg_flag},
             {'acc_flag': acc_flag},
             {'gyro_flag': gyro_flag},
@@ -72,7 +68,6 @@ def generate_launch_description():
     )
 
     return LaunchDescription([
-        # info_flag_arg,
         emg_flag_arg,
         acc_flag_arg,
         gyro_flag_arg,

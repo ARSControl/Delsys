@@ -3,8 +3,8 @@
 <package format="3">
   <name>delsys_interfaces</name>
   <version>0.0.0</version>
-  <description>TODO: Package description</description>
-  <maintainer email="240931@studenti.unimore.it">giuliobesi</maintainer>
+  <description>Package for Delsys custom interfaces</description>
+  <maintainer email="giulio.besi@unimore.it">giuliobesi</maintainer>
   <license>Apache-2.0</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
