@@ -26,7 +26,7 @@ class SensorSocket:
             self.writer = writer
             print(f"Port {self.port} connected to host {self.host}")
             return True
-        except Exception as e:
+        except (ConnectionError, ConnectionResetError, BrokenPipeError) as e:
             print(f"Error connecting to port {self.port}: {e}")
             self.close()
             print(f"Connection on port {self.port} closed.")
@@ -39,14 +39,11 @@ class SensorSocket:
             data = json.dumps(message) + "\n"
             self.writer.write(data.encode('utf-8'))            
             await self.writer.drain()
-        except Exception as e:
+        except (ConnectionError, ConnectionResetError, BrokenPipeError) as e:
             print(f"Socket send error on port {self.port}: {e}")
             self.close()
             print(f"Connection on port {self.port} closed.")
-            print(f"Connecting again port {self.port} to host {self.host}")
-            await self.connect()
-        # finally:
-        #     self.writer = None
+            return False
 
     def close(self):
        # Close the socket connection
@@ -104,7 +101,8 @@ class TrignoRecorder:
                 if ch_type in self.queues:
                     self.guids[ch_type].append(channel.Id)
 
-                # Optionally send sensor metadata via INFO socket --> this line does exactly the same thing async def send()
+                # Send sensor metadata via INFO socket --> this line does exactly the same thing async def send()
+                # CHANGE IT? LEAVE IT LIKE THAT?
                 self.sockets['INFO'].writer.write((json.dumps(info_dict) + "\n").encode('utf-8'))
         return sensors
 
