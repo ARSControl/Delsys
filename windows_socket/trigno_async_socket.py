@@ -1,6 +1,6 @@
 # Import necessary modules
 import asyncio  # For asynchronous operations
-import time     # For time tracking
+# import time     # For time tracking
 import csv      # For writing data to CSV
 from collections import defaultdict  # For dictionary with default list
 import keyboard  # For keyboard input detection
@@ -22,23 +22,48 @@ class SensorSocket:
         self.writer = None
 
     async def connect(self):
-        # Establish TCP connection to the given host and port
-        reader, writer = await asyncio.open_connection(self.host, self.port)
-        self.writer = writer
-
+        try:
+            # Establish TCP connection to the given host and port
+            reader, writer = await asyncio.open_connection(self.host, self.port)
+            self.writer = writer
+            print(f"Port {self.port} connected to host {self.host}")
+            return True
+        except Exception as e:
+            print()
+            self.close()
+            return False
+        
+        
     async def send(self, message):
         try:
             # Send encoded message through socket
+<<<<<<< HEAD
             self.writer.write(json.dumps(message).encode('utf-8'))
+=======
+            data = json.dumps(message) + "\n"
+            self.writer.write(data.encode('utf-8'))            
+>>>>>>> origin/main
             await self.writer.drain()
         except Exception as e:
             print(f"Socket send error on port {self.port}: {e}")
+            self.close()
+            print("chiusa")
+            await self.connect()
+        # finally:
+        #     self.writer = None
 
     # FUNCTION NOT CURRENTLY USED --> KEEP IT TO ALLOW USER TO STOP THE SOCKET ON WINDOWS SIDE OR LEAVE CONTROL TO UBUNTU??
+<<<<<<< HEAD
     #def close(self):
     #    # Close the socket connection
     #    if self.writer:
     #        self.writer.close()
+=======
+    def close(self):
+       # Close the socket connection
+       if self.writer:
+           self.writer.close()
+>>>>>>> origin/main
 
 # -----------------------------------
 # Main class for managing Trigno sensors
@@ -53,7 +78,7 @@ class TrignoRecorder:
         # configuration could be change according to new mode selected from csv filtered file
         self.desired_mode = 'EMG raw (4000 Hz), skin check (74 Hz), ACC 2g (74 Hz), GYRO 250 dps (74 Hz), +/-11mv, 10-850Hz'
 
-        self.global_start_time = None
+        # self.global_start_time = None
         self.recorded_data = [] # Stores data for CSV
 
          # Initialize socket connections for each data type
@@ -83,7 +108,8 @@ class TrignoRecorder:
         for sensor in sensors:
             for channel in sensor.TrignoChannels:
                 ch_type = str(channel.Type)
-                info_line = f"Sensor {sensor.Id}, Channel {channel.Name}, GUID {channel.Id}, Type {channel.Type}"
+                info_line = {"Sensor": str(sensor.Id), "Channel": str(channel.Name), "GUID": str(channel.Id), "DataType": ch_type}
+                # info_line = f"Sensor: {sensor.Id}, Channel: {channel.Name}, GUID: {channel.Id}, Type: {channel.Type}"
                 self.sensor_info_lines.append(info_line) # Store sensor metadata
 
                 # Store channel GUIDs for each data type
@@ -92,9 +118,9 @@ class TrignoRecorder:
                 if ch_type in self.queues:
                     self.guids[ch_type].append(channel.Id)
 
-                # Optionally send sensor metadata via INFO socket
-                self.sockets['INFO'].writer.write((info_line + "\n").encode())
-
+                # Optionally send sensor metadata via INFO socket --> this line does exactly the same thing async def send()
+                self.sockets['INFO'].writer.write((json.dumps(info_line) + "\n").encode('utf-8'))
+                # self.sockets['INFO'].send(info_line)
         return sensors
 
     # Process a queue for a specific sensor type (EMG, ACC, GYRO)
@@ -102,10 +128,16 @@ class TrignoRecorder:
         sock = self.sockets[dtype]
         queue = self.queues[dtype]
         while True:
-            guid, data = await queue.get() # Get next data item from queue
+            guid, data = await queue.get() # Get next data item from queue --> .get() method flushes the elements present in the asyncio.Queue() object from the left most and empty the queue
+                                            # --> if the Queue() object is empty, it waits until new data is queued
             for sample in data:
                 # Format data sample as CSV line
+<<<<<<< HEAD
                 message = {"datatype": dtype, "guid": guid, "time_stamp": sample.Item1,"data_value": sample.Item2}
+=======
+                message = {"DataType": dtype, "GUID": str(guid), "TimeStamp": sample.Item1,"DataValue": sample.Item2}    
+                # message = {"datatype": dtype, "time_stamp": sample.Item1,"data_value": sample.Item2}
+>>>>>>> origin/main
                 await sock.send(message) # Send to socket
 
                 # Also store in memory for later CSV export
@@ -119,18 +151,16 @@ class TrignoRecorder:
     # Start recording sensor data for a given duration 
     # duration could be change
     async def record(self, duration=60):
-        self.global_start_time = time.time()
+        # self.global_start_time = time.time()
         self.base.TrigBase.Start(ytdata=True)
         print("Recording started. Press 'q' to stop.")
 
         while True:
 
-            # --------------- ADD ON ROS SIDE: choices for flag limited stream time and amount ---------------
-            # elapsed = time.time() - self.global_start_time
-            # # Stop if time is up or user presses 'q'
-            # if elapsed > duration or await asyncio.to_thread(keyboard.is_pressed, 'q'):
-            #     print("Stopping recording.")
-            #     break
+            # Stop if time is up or user presses 'q'
+            if await asyncio.to_thread(keyboard.is_pressed, 'q'):
+                print("Stopping recording.")
+                break
 
             # If new data is available
             if self.base.TrigBase.CheckYTDataQueue():
@@ -139,7 +169,7 @@ class TrignoRecorder:
                     # Route data to appropriate queue
                     for dtype, guids in self.guids.items():
                         if guid in guids:
-                            await self.queues[dtype].put((guid, data))
+                            await self.queues[dtype].put((guid, data))  # .put() method append to the right end of the queue - i.e. asyncio.Queue() object
 
             await asyncio.sleep(0.001) # Prevent busy-waiting
 
@@ -177,6 +207,10 @@ class TrignoRecorder:
         workers = [asyncio.create_task(self.process_queue(dtype)) for dtype in self.queues.keys()]
         await self.record()  # Run main recording loop
 
+        for sock in self.sockets.values:    
+        # when pressing 'q' to close connection it returns error = TypeError: 'builtin_function_or_method' object is not iterable
+            await sock.close()
+        
         # Cancel background tasks after recording ends
         for w in workers:
             w.cancel()

@@ -3,4 +3,7 @@
 */LICENSE
 */setup.cfg
 */*/__init__.py
+*/csv/
+*/info_data.txt
+.vscode/
 

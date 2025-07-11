@@ -1,0 +1,7 @@
+# PYTHON DATA HANDLER
+## Data handling package
+This package handles data read from the topics advertised by **Python Socket** package.
+
+Flags for choosing which type of data to save can be toggled running the launch file. Parameters for setting save directory are present as well
+
+Data published on the topics is of type custom and information on data structure can be found within the **Delsys Interfaces** package.
