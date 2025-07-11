@@ -48,7 +48,6 @@ class SensorSocket:
         # finally:
         #     self.writer = None
 
-    # FUNCTION NOT CURRENTLY USED --> KEEP IT TO ALLOW USER TO STOP THE SOCKET ON WINDOWS SIDE OR LEAVE CONTROL TO UBUNTU??
     def close(self):
        # Close the socket connection
        if self.writer:
