@@ -1,5 +1,5 @@
 # WORSPACE IN PROGRESS - DELSYS API SOCKET
-This repo is meant to be used with the official Delsys API [ADD URL] and ros2 (developing on Humble distro).
+This repo is meant to be used with the official Delsys API and ros2 (developing on Humble distro).
 
 CONTENT:
 - **windows_socket**: repo containing all necessary files to be used with the Delsys API and send data over socket connection (Windows side)
