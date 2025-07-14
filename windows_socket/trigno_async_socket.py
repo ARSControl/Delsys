@@ -1,16 +1,14 @@
 # Import necessary modules
 import asyncio  # For asynchronous operations
-# import time     # For time tracking
 import csv      # For writing data to CSV
 from collections import defaultdict  # For dictionary with default list
 import keyboard  # For keyboard input detection
+import os
+import json
 
 # Import Trigno-related interfaces from AeroPy library
 from AeroPy.TrignoBase import TrignoBase
 from AeroPy.DataManager import DataKernel
-
-import socket
-import json
 
 # -----------------------------------
 # Class to handle socket communication
@@ -28,9 +26,10 @@ class SensorSocket:
             self.writer = writer
             print(f"Port {self.port} connected to host {self.host}")
             return True
-        except Exception as e:
-            print()
+        except (ConnectionError, ConnectionResetError, BrokenPipeError) as e:
+            print(f"Error connecting to port {self.port}: {e}")
             self.close()
+            print(f"Connection on port {self.port} closed.")
             return False
         
         
@@ -40,15 +39,12 @@ class SensorSocket:
             data = json.dumps(message) + "\n"
             self.writer.write(data.encode('utf-8'))            
             await self.writer.drain()
-        except Exception as e:
+        except (ConnectionError, ConnectionResetError, BrokenPipeError) as e:
             print(f"Socket send error on port {self.port}: {e}")
             self.close()
-            print("chiusa")
-            await self.connect()
-        # finally:
-        #     self.writer = None
+            print(f"Connection on port {self.port} closed.")
+            return False
 
-    # FUNCTION NOT CURRENTLY USED --> KEEP IT TO ALLOW USER TO STOP THE SOCKET ON WINDOWS SIDE OR LEAVE CONTROL TO UBUNTU??
     def close(self):
        # Close the socket connection
        if self.writer:
@@ -67,9 +63,6 @@ class TrignoRecorder:
         # configuration could be change according to new mode selected from csv filtered file
         self.desired_mode = 'EMG raw (4000 Hz), skin check (74 Hz), ACC 2g (74 Hz), GYRO 250 dps (74 Hz), +/-11mv, 10-850Hz'
 
-        # self.global_start_time = None
-        self.recorded_data = [] # Stores data for CSV
-
          # Initialize socket connections for each data type
         self.sockets = {dtype: SensorSocket(self.HOST, port) for dtype, port in self.PORTS.items()}
 
@@ -77,7 +70,9 @@ class TrignoRecorder:
         self.guids = defaultdict(list) # Store GUIDs for each sensor type
         self.queues = {dtype: asyncio.Queue() for dtype in ['EMG', 'ACC', 'GYRO']} # Queues for async processing
 
-        self.sensor_info_lines = []  # Store sensor info for CSV header
+        # Store data to write to csv
+        self.recorded_data_dicts = [] 
+        self.sensor_info_dicts = []  
 
     # Set up Trigno base interface
     def setup_base(self):
@@ -97,9 +92,8 @@ class TrignoRecorder:
         for sensor in sensors:
             for channel in sensor.TrignoChannels:
                 ch_type = str(channel.Type)
-                info_line = {"Sensor": str(sensor.Id), "Channel": str(channel.Name), "GUID": str(channel.Id), "DataType": ch_type}
-                # info_line = f"Sensor: {sensor.Id}, Channel: {channel.Name}, GUID: {channel.Id}, Type: {channel.Type}"
-                self.sensor_info_lines.append(info_line) # Store sensor metadata
+                info_dict = {"Sensor": str(sensor.Id), "Channel": str(channel.Name), "GUID": str(channel.Id), "DataType": ch_type}
+                self.sensor_info_dicts.append(info_dict) # Store sensor metadata
 
                 # Store channel GUIDs for each data type
                 if ch_type in self.guids:
@@ -107,9 +101,9 @@ class TrignoRecorder:
                 if ch_type in self.queues:
                     self.guids[ch_type].append(channel.Id)
 
-                # Optionally send sensor metadata via INFO socket --> this line does exactly the same thing async def send()
-                self.sockets['INFO'].writer.write((json.dumps(info_line) + "\n").encode('utf-8'))
-                # self.sockets['INFO'].send(info_line)
+                # Send sensor metadata via INFO socket --> this line does exactly the same thing async def send()
+                # CHANGE IT? LEAVE IT LIKE THAT?
+                self.sockets['INFO'].writer.write((json.dumps(info_dict) + "\n").encode('utf-8'))
         return sensors
 
     # Process a queue for a specific sensor type (EMG, ACC, GYRO)
@@ -122,21 +116,18 @@ class TrignoRecorder:
             for sample in data:
                 # Format data sample as CSV line
                 message = {"DataType": dtype, "GUID": str(guid), "TimeStamp": sample.Item1,"DataValue": sample.Item2}    
-                # message = {"datatype": dtype, "time_stamp": sample.Item1,"data_value": sample.Item2}
                 await sock.send(message) # Send to socket
 
                 # Also store in memory for later CSV export
-                self.recorded_data.append({
+                self.recorded_data_dicts.append({
                     "sensor_type": dtype,
                     "channel_guid": guid,
-                    "time_point": sample.Item1,
+                    "time_stamp": sample.Item1,
                     "value": sample.Item2
                 })
 
     # Start recording sensor data for a given duration 
-    # duration could be change
-    async def record(self, duration=60):
-        # self.global_start_time = time.time()
+    async def record(self):
         self.base.TrigBase.Start(ytdata=True)
         print("Recording started. Press 'q' to stop.")
 
@@ -159,23 +150,20 @@ class TrignoRecorder:
             await asyncio.sleep(0.001) # Prevent busy-waiting
 
         # Stop data collection and reset system
-        # non ci entra ma chiudere la connessione se la socket da linux si chiude 
         self.base.TrigBase.Stop()
         self.base.TrigBase.ResetPipeline()
         print("Recording complete.")
 
     # Write recorded data and sensor info to CSV
-    def save_to_csv(self, file, sensors):
-        with open(file, "w", newline="") as f:
-            # Write sensor metadata block
-            for line in self.sensor_info_lines:
-                f.write(line + "\n")
-            f.write("\n")  # Empty line before data block
-            
-            # Write data block
-            writer = csv.DictWriter(f, fieldnames=["sensor_type", "channel_guid", "time_point", "value"])
+    def save_to_csv(self, file_path, data_dicts_list):
+        os.makedirs(os.path.dirname(file_path), exist_ok=True)
+        with open(file_path, "w", newline="") as f:
+            # Write block
+            writer = csv.DictWriter(f, fieldnames=[key for key in data_dicts_list[0].keys()])
+            if not data_dicts_list:
+                print(f"[WARNING] No data to save to {file_path}")
             writer.writeheader()
-            writer.writerows(self.recorded_data)
+            writer.writerows(data_dicts_list)            
 
     # Full process: setup → wait → record → save
     async def run(self):
@@ -191,10 +179,6 @@ class TrignoRecorder:
         # Start background tasks for processing each sensor data type
         workers = [asyncio.create_task(self.process_queue(dtype)) for dtype in self.queues.keys()]
         await self.record()  # Run main recording loop
-
-        for sock in self.sockets.values:    
-        # when pressing 'q' to close connection it returns error = TypeError: 'builtin_function_or_method' object is not iterable
-            await sock.close()
         
         # Cancel background tasks after recording ends
         for w in workers:
@@ -204,9 +188,14 @@ class TrignoRecorder:
             except asyncio.CancelledError:
                 pass
 
-        file = "recorded_data.csv"
-        self.save_to_csv(file, sensors) # Save data to file
-        print(f"Successfully saved stream data to {file}")
+        info_file = "info_data.csv"
+        data_file = "recorded_data.csv"
+        base_path = os.getcwd()
+        data_folder = "csv"
+        self.save_to_csv(os.path.join(base_path, data_folder, info_file), self.sensor_info_dicts) # Save info data
+        print(f"Successfully saved info data to {os.path.join(base_path, data_folder, info_file)}")
+        self.save_to_csv(os.path.join(base_path, data_folder, data_file), self.recorded_data_dicts) # Save recorded data
+        print(f"Successfully saved stream data to {os.path.join(base_path, data_folder, data_file)}")
 
 # -----------------------------------
 # Entry point for running the script
