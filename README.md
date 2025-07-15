@@ -1,4 +1,4 @@
-# WORSPACE IN PROGRESS - DELSYS API SOCKET
+# DELSYS API SOCKET
 This repo is meant to be used with the official Delsys API and ROS2 (developing on Humble distro).
 
 CONTENT:
